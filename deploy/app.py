@@ -4,23 +4,24 @@ import numpy as np
 import joblib
 import shap
 import time
+import os
 from collections import deque
 
 st.set_page_config(page_title="Fraud Detection Dashboard", layout="wide")
 
-# ---- Load all artifacts once ----
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 @st.cache_resource
 def load_artifacts():
-    model = joblib.load("fraud_model.pkl")
-    scaler = joblib.load("scaler.pkl")
-    explainer = joblib.load("shap_explainer.pkl")
-    feature_columns = joblib.load("feature_columns.pkl")
-    reference_stats = joblib.load("reference_stats.pkl")
+    model = joblib.load(os.path.join(BASE_DIR, "fraud_model.pkl"))
+    scaler = joblib.load(os.path.join(BASE_DIR, "scaler.pkl"))
+    explainer = joblib.load(os.path.join(BASE_DIR, "shap_explainer.pkl"))
+    feature_columns = joblib.load(os.path.join(BASE_DIR, "feature_columns.pkl"))
+    reference_stats = joblib.load(os.path.join(BASE_DIR, "reference_stats.pkl"))
     return model, scaler, explainer, feature_columns, reference_stats
 
 model, scaler, explainer, feature_columns, reference_stats = load_artifacts()
 
-# ---- Drift Detector class ----
 class DriftDetector:
     def __init__(self, reference_stats, feature_columns, window_size=200, threshold=3.0):
         self.ref_mean = reference_stats['mean']
@@ -60,7 +61,6 @@ if "drift_detector" not in st.session_state:
 if "prediction_log" not in st.session_state:
     st.session_state.prediction_log = []
 
-# ---- Prediction function (replaces the API call) ----
 def predict_transaction(row_dict):
     row = {col: row_dict.get(col, 0.0) for col in feature_columns}
     df_row = pd.DataFrame([row])[feature_columns]
@@ -92,7 +92,6 @@ def predict_transaction(row_dict):
     st.session_state.prediction_log.append(result)
     return result
 
-# ---- UI ----
 st.title("🔍 Explainable Real-Time Fraud Detection System")
 st.caption("Random Forest / XGBoost model + SHAP explainability + drift monitoring")
 
@@ -112,7 +111,7 @@ with tab1:
 
     if start_button:
         try:
-            sample_df = pd.read_csv("sample_transactions.csv").drop(columns=["Class"], errors="ignore")
+            sample_df = pd.read_csv(os.path.join(BASE_DIR, "sample_transactions.csv")).drop(columns=["Class"], errors="ignore")
         except FileNotFoundError:
             st.error("sample_transactions.csv not found.")
             sample_df = pd.DataFrame()
