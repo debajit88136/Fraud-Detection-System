@@ -31,7 +31,13 @@ class DriftDetector:
         self.threshold = threshold
 
     def add_transaction(self, feature_dict):
-        self.window.append(feature_dict)
+        safe_dict = {}
+        for k, v in feature_dict.items():
+            try:
+                safe_dict[k] = float(v)
+            except (ValueError, TypeError):
+                pass
+        self.window.append(safe_dict)
 
     def check_drift(self):
         if len(self.window) < 30:
